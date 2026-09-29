@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>喜馬拉雅山「雪嶺鎮」- 2D 動態小鎮模擬器</title>
+    <style>
+        body { font-family: sans-serif; background: #1a2634; color: #ecf0f1; margin: 0; padding: 15px; text-align: center; }
+        .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1200px; margin: 0 auto; }
+        canvas { border: 3px solid #f1c40f; border-radius: 8px; background: #cce7e8; cursor: pointer; }
+        .sidebar { background: #243342; border-radius: 8px; padding: 15px; width: 300px; text-align: left; }
+        .status-box { background: #1e2b37; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; }
+    </style>
+</head>
+<body>
+
+    <h2>🏔️ 喜馬拉雅山「雪嶺鎮」- 100 位居民動態地圖</h2>
+    <p>⏰ 模擬時間：<span id="game-time" style="color:#f1c40f;">08:00 AM</span> | 點擊彩色小人可查看該 Agent 動態</p>
+
+    <div class="main-layout">
+        <canvas id="townMap" width="700" height="500"></canvas>
+        <div class="sidebar" id="sidebar">
+            <h3>👤 請點擊地圖上的小人</h3>
+            <p style="color:#bdc3c7;">點擊小人即可查看該居民的即時座標與記憶。</p>
+        </div>
+    </div>
+
+<script>
+const canvas = document.getElementById('townMap');
+const ctx = canvas.getContext('2d');
+
+// 地圖區域
+const zones = [
+    { name: "古寺", x: 40, y: 40, w: 150, h: 100, color: "#e74c3c" },
+    { name: "嚮導工會", x: 260, y: 40, w: 180, h: 100, color: "#3498db" },
+    { name: "藏醫診所", x: 500, y: 40, w: 150, h: 100, color: "#2ecc71" },
+    { name: "雪豹茶館", x: 150, y: 220, w: 180, h: 120, color: "#f39c12" },
+    { name: "高原牧場", x: 400, y: 220, w: 220, h: 150, color: "#27ae60" }
+];
+
+// 生成 100 個會走動的 Agent
+const agents = [];
+const names = ["巴桑", "央金", "索朗", "扎西", "艾米莉", "德吉", "嘎瑪", "次仁", "丹增", "尼瑪"];
+for (let i = 1; i <= 100; i++) {
+    agents.push({
+        id: i,
+        name: names[i % names.length] + "·居民" + i,
+        x: 50 + Math.random() * 600,
+        y: 50 + Math.random() * 400,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        color: `hsl(${(i * 35) % 360}, 80%, 50%)`
+    });
+}
+
+let selectedAgent = null;
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 畫背景與建築
+    ctx.fillStyle = "#d5e8d4";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    zones.forEach(z => {
+        ctx.fillStyle = z.color;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(z.x, z.y, z.w, z.h);
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = z.color;
+        ctx.strokeRect(z.x, z.y, z.w, z.h);
+        ctx.fillStyle = "#333";
+        ctx.font = "bold 12px sans-serif";
+        ctx.fillText(z.name, z.x + 10, z.y + 20);
+    });
+
+    // 畫 100 個動態人物
+    agents.forEach(a => {
+        a.x += a.vx;
+        a.y += a.vy;
+
+        if (a.x < 10 || a.x > canvas.width - 10) a.vx *= -1;
+        if (a.y < 10 || a.y > canvas.height - 10) a.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = a.color;
+        ctx.fill();
+        ctx.strokeStyle = "#fff";
+        ctx.stroke();
+
+        if (selectedAgent && selectedAgent.id === a.id) {
+            ctx.beginPath();
+            ctx.arc(a.x, a.y, 10, 0, Math.PI * 2);
+            ctx.strokeStyle = "#f1c40f";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+    });
+
+    requestAnimationFrame(draw);
+}
+
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = e.clientX - rect.left;
+    const my = e.clientY - rect.top;
+
+    agents.forEach(a => {
+        if (Math.hypot(a.x - mx, a.y - my) < 10) {
+            selectedAgent = a;
+            document.getElementById('sidebar').innerHTML = `
+                <h2>👤 ${a.name}</h2>
+                <p><b>編號：</b>Agent #${a.id}</p>
+                <div class="status-box">
+                    <p><b>📍 即時動態：</b>正在雪嶺鎮街道上記錄氣候與巡視。</p>
+                    <p><b>🧠 最新記憶：</b>早上與鎮民討論了雪崩預防措施。</p>
+                </div>
+            `;
+        }
+    });
+});
+
+draw();
+</script>
+</body>
+</html>
