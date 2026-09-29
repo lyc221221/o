@@ -6,12 +6,16 @@
     <title>喜馬拉雅山「雪嶺鎮」- 2D 動態小鎮模擬器</title>
     <style>
         body { font-family: sans-serif; background: #1a2634; color: #ecf0f1; margin: 0; padding: 15px; text-align: center; }
-        .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1200px; margin: 0 auto; }
+        .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1400px; margin: 0 auto; flex-wrap: wrap; }
         canvas { border: 3px solid #f1c40f; border-radius: 8px; background: #cce7e8; cursor: pointer; image-rendering: pixelated; }
-        .sidebar { background: #243342; border-radius: 8px; padding: 15px; width: 300px; text-align: left; }
+        .sidebar { background: #243342; border-radius: 8px; padding: 15px; width: 300px; text-align: left; max-height: 520px; overflow-y: auto; }
+        .relationship-panel { background: #243342; border-radius: 8px; padding: 15px; width: 300px; max-height: 520px; overflow-y: auto; }
         .status-box { background: #1e2b37; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; }
         .coordinate { color: #f1c40f; font-family: monospace; font-size: 16px; }
-        @media (max-width: 850px) { .main-layout { flex-direction: column; align-items: center; } .sidebar { width: min(300px, calc(100% - 30px)); } canvas { max-width: 100%; height: auto; } }
+        .relation-item { background: #1e2b37; padding: 8px; margin: 8px 0; border-radius: 4px; border-left: 3px solid #3498db; font-size: 12px; }
+        .relation-name { color: #f1c40f; font-weight: bold; }
+        h3 { margin-top: 0; color: #f1c40f; border-bottom: 2px solid #3498db; padding-bottom: 8px; }
+        @media (max-width: 1024px) { .main-layout { flex-direction: column; align-items: center; } .sidebar, .relationship-panel { width: min(300px, calc(100% - 30px)); } }
     </style>
 </head>
 <body>
@@ -19,10 +23,14 @@
     <p>⏰ 模擬時間：<span id="game-time" style="color:#f1c40f;">08:00 AM</span> | 點擊彩色小人可查看該 Agent 動態</p>
 
     <div class="main-layout">
-        <canvas id="townMap" width="700" height="500"></canvas>
+        <canvas id="townMap" width="700" height="520"></canvas>
         <div class="sidebar" id="sidebar">
             <h3>👤 請點擊地圖上的小人</h3>
             <p style="color:#bdc3c7;">點擊小人即可查看該居民的即時座標與記憶。</p>
+        </div>
+        <div class="relationship-panel" id="relationships">
+            <h3>🤝 人物關係</h3>
+            <p style="color:#bdc3c7;">點擊小人後，此處顯示該居民與其他人的關係。</p>
         </div>
     </div>
 
@@ -30,6 +38,7 @@
 const canvas = document.getElementById('townMap');
 const ctx = canvas.getContext('2d');
 const sidebar = document.getElementById('sidebar');
+const relationPanel = document.getElementById('relationships');
 
 const zones = [
     { name: "古寺", x: 40, y: 40, w: 150, h: 100, color: "#e74c3c" },
@@ -49,6 +58,7 @@ const memories = [
     "剛從古寺參拜完，準備回家。"
 ];
 const activities = ["正在雪嶺鎮街道上巡視。", "正在前往茶館。", "正在協助居民搬運物資。", "正在記錄高原天氣。"];
+const relationships = ["親戚", "朋友", "同事", "鄰居", "師傅"];
 
 const agents = [];
 for (let i = 1; i <= 100; i++) {
@@ -61,7 +71,11 @@ for (let i = 1; i <= 100; i++) {
         vy: (Math.random() - 0.5) * 2,
         color: colors[i % colors.length],
         memory: memories[i % memories.length],
-        activity: activities[i % activities.length]
+        activity: activities[i % activities.length],
+        relations: Array.from({ length: 3 }, () => ({
+            id: Math.ceil(Math.random() * 100),
+            type: relationships[Math.floor(Math.random() * relationships.length)]
+        }))
     });
 }
 
@@ -71,35 +85,50 @@ function drawPixelAgent(a) {
     const x = Math.round(a.x);
     const y = Math.round(a.y);
     const selected = selectedAgent && selectedAgent.id === a.id;
-    const px = 3;
+    const px = 6; // 更大的像素尺寸
 
     if (selected) {
         ctx.strokeStyle = "#f1c40f";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(x - 4 * px, y - 3 * px, 8 * px, 8 * px);
+        ctx.lineWidth = 3;
+        ctx.strokeRect(x - 16, y - 20, 32, 40);
     }
 
-    // 可愛像素小人：帽子、臉、身體、手和腳
+    // 帽子（紫色）
     ctx.fillStyle = "#6c5ce7";
-    ctx.fillRect(x - 2 * px, y - 4 * px, 4 * px, px);
-    ctx.fillRect(x - 3 * px, y - 3 * px, 6 * px, px);
+    ctx.fillRect(x - 8, y - 18, 16, 6);
+    ctx.fillRect(x - 12, y - 12, 24, 4);
+
+    // 臉（膚色）
     ctx.fillStyle = "#ffd6a5";
-    ctx.fillRect(x - 2 * px, y - 2 * px, 4 * px, 3 * px);
+    ctx.fillRect(x - 8, y - 8, 16, 12);
+
+    // 眼睛（黑色）
     ctx.fillStyle = "#222";
-    ctx.fillRect(x - px, y - px, px, px);
-    ctx.fillRect(x + px, y - px, px, px);
+    ctx.fillRect(x - 4, y - 4, 3, 3);
+    ctx.fillRect(x + 1, y - 4, 3, 3);
+
+    // 身體（各自顏色）
     ctx.fillStyle = a.color;
-    ctx.fillRect(x - 2 * px, y + px, 4 * px, 3 * px);
-    ctx.fillRect(x - 3 * px, y + px, px, 2 * px);
-    ctx.fillRect(x + 2 * px, y + px, px, 2 * px);
+    ctx.fillRect(x - 8, y + 4, 16, 12);
+
+    // 手臂
+    ctx.fillRect(x - 14, y + 4, 6, 8);
+    ctx.fillRect(x + 8, y + 4, 6, 8);
+
+    // 腿（棕色）
     ctx.fillStyle = "#5d4037";
-    ctx.fillRect(x - 2 * px, y + 4 * px, px, 2 * px);
-    ctx.fillRect(x + px, y + 4 * px, px, 2 * px);
+    ctx.fillRect(x - 6, y + 16, 5, 8);
+    ctx.fillRect(x + 1, y + 16, 5, 8);
+}
+
+function generateRelationName(agentId) {
+    const agent = agents.find(a => a.id === agentId);
+    return agent ? agent.name : "不詳";
 }
 
 function updateSidebar(a) {
     sidebar.innerHTML = `
-        <h2>👤 ${a.name}</h2>
+        <h3>👤 ${a.name}</h3>
         <p><b>編號：</b>Agent #${a.id}</p>
         <div class="status-box">
             <p><b>📍 即時座標：</b></p>
@@ -108,6 +137,16 @@ function updateSidebar(a) {
             <p><b>🧠 最新記憶：</b>${a.memory}</p>
         </div>
         <p style="color:#bdc3c7;font-size:12px;">座標會隨人物移動即時更新。</p>
+    `;
+
+    relationPanel.innerHTML = `
+        <h3>🤝 ${a.name}的人物關係</h3>
+        ${a.relations.map(r => `
+            <div class="relation-item">
+                <p class="relation-name">${generateRelationName(r.id)}</p>
+                <p>關係：<span style="color:#2ecc71;">${r.type}</span></p>
+            </div>
+        `).join('')}
     `;
 }
 
@@ -132,8 +171,8 @@ function draw() {
     agents.forEach(a => {
         a.x += a.vx;
         a.y += a.vy;
-        if (a.x < 15 || a.x > canvas.width - 15) { a.vx *= -1; a.x = Math.max(15, Math.min(canvas.width - 15, a.x)); }
-        if (a.y < 25 || a.y > canvas.height - 20) { a.vy *= -1; a.y = Math.max(25, Math.min(canvas.height - 20, a.y)); }
+        if (a.x < 20 || a.x > canvas.width - 20) { a.vx *= -1; a.x = Math.max(20, Math.min(canvas.width - 20, a.x)); }
+        if (a.y < 30 || a.y > canvas.height - 30) { a.vy *= -1; a.y = Math.max(30, Math.min(canvas.height - 30, a.y)); }
         drawPixelAgent(a);
     });
 
@@ -150,10 +189,9 @@ canvas.addEventListener('click', event => {
     const mx = (event.clientX - rect.left) * scaleX;
     const my = (event.clientY - rect.top) * scaleY;
 
-    // 找出點擊範圍內最近的小人，避免人物重疊時選錯居民
     selectedAgent = agents
         .map(a => ({ agent: a, distance: Math.hypot(a.x - mx, a.y - my) }))
-        .filter(item => item.distance <= 22)
+        .filter(item => item.distance <= 25)
         .sort((a, b) => a.distance - b.distance)[0]?.agent || null;
 
     if (selectedAgent) updateSidebar(selectedAgent);
