@@ -7,13 +7,14 @@
     <style>
         body { font-family: sans-serif; background: #1a2634; color: #ecf0f1; margin: 0; padding: 15px; text-align: center; }
         .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1200px; margin: 0 auto; }
-        canvas { border: 3px solid #f1c40f; border-radius: 8px; background: #cce7e8; cursor: pointer; }
+        canvas { border: 3px solid #f1c40f; border-radius: 8px; background: #cce7e8; cursor: pointer; image-rendering: pixelated; }
         .sidebar { background: #243342; border-radius: 8px; padding: 15px; width: 300px; text-align: left; }
         .status-box { background: #1e2b37; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; }
+        .coordinate { color: #f1c40f; font-family: monospace; font-size: 16px; }
+        @media (max-width: 850px) { .main-layout { flex-direction: column; align-items: center; } .sidebar { width: min(300px, calc(100% - 30px)); } canvas { max-width: 100%; height: auto; } }
     </style>
 </head>
 <body>
-
     <h2>🏔️ 喜馬拉雅山「雪嶺鎮」- 100 位居民動態地圖</h2>
     <p>⏰ 模擬時間：<span id="game-time" style="color:#f1c40f;">08:00 AM</span> | 點擊彩色小人可查看該 Agent 動態</p>
 
@@ -28,8 +29,8 @@
 <script>
 const canvas = document.getElementById('townMap');
 const ctx = canvas.getContext('2d');
+const sidebar = document.getElementById('sidebar');
 
-// 地圖區域
 const zones = [
     { name: "古寺", x: 40, y: 40, w: 150, h: 100, color: "#e74c3c" },
     { name: "嚮導工會", x: 260, y: 40, w: 180, h: 100, color: "#3498db" },
@@ -38,9 +39,18 @@ const zones = [
     { name: "高原牧場", x: 400, y: 220, w: 220, h: 150, color: "#27ae60" }
 ];
 
-// 生成 100 個會走動的 Agent
-const agents = [];
 const names = ["巴桑", "央金", "索朗", "扎西", "艾米莉", "德吉", "嘎瑪", "次仁", "丹增", "尼瑪"];
+const colors = ["#ff6b6b", "#4ecdc4", "#45b7d1", "#ffa07a", "#98d8c8", "#f7dc6f", "#bb8fce", "#85c1e2"];
+const memories = [
+    "早上與鎮民討論了雪崩預防措施。",
+    "剛到茶館喝了一杯熱奶茶。",
+    "正在準備今天的登山嚮導用品。",
+    "在牧場幫忙照顧高原羊群。",
+    "剛從古寺參拜完，準備回家。"
+];
+const activities = ["正在雪嶺鎮街道上巡視。", "正在前往茶館。", "正在協助居民搬運物資。", "正在記錄高原天氣。"];
+
+const agents = [];
 for (let i = 1; i <= 100; i++) {
     agents.push({
         id: i,
@@ -49,76 +59,104 @@ for (let i = 1; i <= 100; i++) {
         y: 50 + Math.random() * 400,
         vx: (Math.random() - 0.5) * 2,
         vy: (Math.random() - 0.5) * 2,
-        color: `hsl(${(i * 35) % 360}, 80%, 50%)`
+        color: colors[i % colors.length],
+        memory: memories[i % memories.length],
+        activity: activities[i % activities.length]
     });
 }
 
 let selectedAgent = null;
 
+function drawPixelAgent(a) {
+    const x = Math.round(a.x);
+    const y = Math.round(a.y);
+    const selected = selectedAgent && selectedAgent.id === a.id;
+    const px = 3;
+
+    if (selected) {
+        ctx.strokeStyle = "#f1c40f";
+        ctx.lineWidth = 2;
+        ctx.strokeRect(x - 4 * px, y - 3 * px, 8 * px, 8 * px);
+    }
+
+    // 可愛像素小人：帽子、臉、身體、手和腳
+    ctx.fillStyle = "#6c5ce7";
+    ctx.fillRect(x - 2 * px, y - 4 * px, 4 * px, px);
+    ctx.fillRect(x - 3 * px, y - 3 * px, 6 * px, px);
+    ctx.fillStyle = "#ffd6a5";
+    ctx.fillRect(x - 2 * px, y - 2 * px, 4 * px, 3 * px);
+    ctx.fillStyle = "#222";
+    ctx.fillRect(x - px, y - px, px, px);
+    ctx.fillRect(x + px, y - px, px, px);
+    ctx.fillStyle = a.color;
+    ctx.fillRect(x - 2 * px, y + px, 4 * px, 3 * px);
+    ctx.fillRect(x - 3 * px, y + px, px, 2 * px);
+    ctx.fillRect(x + 2 * px, y + px, px, 2 * px);
+    ctx.fillStyle = "#5d4037";
+    ctx.fillRect(x - 2 * px, y + 4 * px, px, 2 * px);
+    ctx.fillRect(x + px, y + 4 * px, px, 2 * px);
+}
+
+function updateSidebar(a) {
+    sidebar.innerHTML = `
+        <h2>👤 ${a.name}</h2>
+        <p><b>編號：</b>Agent #${a.id}</p>
+        <div class="status-box">
+            <p><b>📍 即時座標：</b></p>
+            <p class="coordinate">X: ${a.x.toFixed(1)}　Y: ${a.y.toFixed(1)}</p>
+            <p><b>🚶 目前動態：</b>${a.activity}</p>
+            <p><b>🧠 最新記憶：</b>${a.memory}</p>
+        </div>
+        <p style="color:#bdc3c7;font-size:12px;">座標會隨人物移動即時更新。</p>
+    `;
+}
+
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 畫背景與建築
     ctx.fillStyle = "#d5e8d4";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    
+
     zones.forEach(z => {
         ctx.fillStyle = z.color;
         ctx.globalAlpha = 0.3;
         ctx.fillRect(z.x, z.y, z.w, z.h);
-        ctx.globalAlpha = 1.0;
+        ctx.globalAlpha = 1;
         ctx.strokeStyle = z.color;
+        ctx.lineWidth = 2;
         ctx.strokeRect(z.x, z.y, z.w, z.h);
         ctx.fillStyle = "#333";
         ctx.font = "bold 12px sans-serif";
         ctx.fillText(z.name, z.x + 10, z.y + 20);
     });
 
-    // 畫 100 個動態人物
     agents.forEach(a => {
         a.x += a.vx;
         a.y += a.vy;
-
-        if (a.x < 10 || a.x > canvas.width - 10) a.vx *= -1;
-        if (a.y < 10 || a.y > canvas.height - 10) a.vy *= -1;
-
-        ctx.beginPath();
-        ctx.arc(a.x, a.y, 6, 0, Math.PI * 2);
-        ctx.fillStyle = a.color;
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-
-        if (selectedAgent && selectedAgent.id === a.id) {
-            ctx.beginPath();
-            ctx.arc(a.x, a.y, 10, 0, Math.PI * 2);
-            ctx.strokeStyle = "#f1c40f";
-            ctx.lineWidth = 3;
-            ctx.stroke();
-        }
+        if (a.x < 15 || a.x > canvas.width - 15) { a.vx *= -1; a.x = Math.max(15, Math.min(canvas.width - 15, a.x)); }
+        if (a.y < 25 || a.y > canvas.height - 20) { a.vy *= -1; a.y = Math.max(25, Math.min(canvas.height - 20, a.y)); }
+        drawPixelAgent(a);
     });
 
-    requestAnimationFrame(draw);
+    if (selectedAgent) updateSidebar(selectedAgent);
 }
 
-canvas.addEventListener('click', (e) => {
-    const rect = canvas.getBoundingClientRect();
-    const mx = e.clientX - rect.left;
-    const my = e.clientY - rect.top;
+// 動畫迴圈
+setInterval(draw, 50);
 
-    agents.forEach(a => {
-        if (Math.hypot(a.x - mx, a.y - my) < 10) {
-            selectedAgent = a;
-            document.getElementById('sidebar').innerHTML = `
-                <h2>👤 ${a.name}</h2>
-                <p><b>編號：</b>Agent #${a.id}</p>
-                <div class="status-box">
-                    <p><b>📍 即時動態：</b>正在雪嶺鎮街道上記錄氣候與巡視。</p>
-                    <p><b>🧠 最新記憶：</b>早上與鎮民討論了雪崩預防措施。</p>
-                </div>
-            `;
-        }
-    });
+canvas.addEventListener('click', event => {
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = canvas.width / rect.width;
+    const scaleY = canvas.height / rect.height;
+    const mx = (event.clientX - rect.left) * scaleX;
+    const my = (event.clientY - rect.top) * scaleY;
+
+    // 找出點擊範圍內最近的小人，避免人物重疊時選錯居民
+    selectedAgent = agents
+        .map(a => ({ agent: a, distance: Math.hypot(a.x - mx, a.y - my) }))
+        .filter(item => item.distance <= 22)
+        .sort((a, b) => a.distance - b.distance)[0]?.agent || null;
+
+    if (selectedAgent) updateSidebar(selectedAgent);
 });
 
 draw();
