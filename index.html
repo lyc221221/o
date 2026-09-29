@@ -3,184 +3,220 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>喜馬拉雅山「雪嶺鎮」- 100 位居民 Persona 模擬器</title>
+    <title>喜馬拉雅山「雪嶺鎮」- 2D 動態小鎮模擬器</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #f0f4f8; color: #333; margin: 0; padding: 20px; }
-        .container { max-width: 1200px; margin: 0 auto; display: grid; grid-template-columns: 1fr 2fr; gap: 20px; }
-        header { text-align: center; margin-bottom: 20px; grid-column: 1 / -1; }
-        .card { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-bottom: 10px; cursor: pointer; transition: 0.2s; }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 4px 10px rgba(0,0,0,0.15); }
-        .resident-list { max-height: 80vh; overflow-y: auto; padding-right: 10px; }
-        .detail-panel { background: white; padding: 25px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); position: sticky; top: 20px; }
-        .tag { display: inline-block; background: #e1f5fe; color: #0288d1; padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px; }
-        .search-box { width: 100%; padding: 10px; margin-bottom: 15px; border: 1fr solid #ccc; border-radius: 5px; box-sizing: border-box; }
-        .routine-list { background: #f9f9f9; padding: 10px; border-radius: 5px; font-size: 14px; }
-        .dialogue-box { background: #eef2f5; border-left: 4px solid #0288d1; padding: 10px; margin-top: 15px; border-radius: 0 5px 5px 0; }
+        body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #1a2634; color: #ecf0f1; margin: 0; padding: 15px; }
+        .header { text-align: center; margin-bottom: 10px; }
+        .main-layout { display: grid; grid-template-columns: 2fr 1fr; gap: 15px; max-width: 1400px; margin: 0 auto; }
+        .canvas-container { background: #2c3e50; border-radius: 8px; padding: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); text-align: center; position: relative; }
+        canvas { border: 2px solid #34495e; border-radius: 4px; background: #cce7e8; cursor: pointer; }
+        .sidebar { background: #243342; border-radius: 8px; padding: 15px; height: 600px; overflow-y: auto; }
+        .tag { display: inline-block; background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin-right: 4px; }
+        .status-box { background: #1e2b37; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; }
+        .controls { margin-top: 10px; text-align: center; }
+        button { background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2ecc71; }
     </style>
 </head>
 <body>
 
-<header>
-    <h1>🏔️ 喜馬拉雅山「雪嶺鎮」Agent 模擬器</h1>
-    <p>包含 100 位居民獨立 Persona、家庭關係與作息架構</p>
-</header>
+<div class="header">
+    <h2>🏔️ 喜馬拉雅山「雪嶺鎮」- 2D 地圖與 100 位居民動態模擬器</h2>
+    <p>模擬器時間：<span id="game-time" style="color:#f1c40f; font-weight:bold;">08:00 AM</span> | 點擊地圖上的居民可觀看即時動態</p>
+</div>
 
-<div class="container">
-    <!-- 左側居民列表 -->
-    <div>
-        <input type="text" id="search" class="search-box" placeholder="搜尋居民姓名、職業或性格..." onkeyup="filterResidents()">
-        <div class="resident-list" id="resident-list"></div>
+<div class="main-layout">
+    <!-- 左側：動態繪圖地圖 -->
+    <div class="canvas-container">
+        <canvas id="townMap" width="800" height="600"></canvas>
+        <div class="controls">
+            <button onclick="togglePause()">⏸️ 暫停 / 播放模擬</button>
+        </div>
     </div>
 
-    <!-- 右側 Persona 詳細資訊與對話模擬 -->
-    <div class="detail-panel" id="detail-panel">
-        <h3>👈 請點擊左側居民檢視完整 Persona 設定</h3>
+    <!-- 右側：角色狀態與對話 Panel -->
+    <div class="sidebar" id="sidebar">
+        <h3>🔍 請點擊地圖上的角色小人查看動態</h3>
+        <p style="color:#bdc3c7;">小鎮地圖包含：雪嶺古寺、嚮導工會、雪豹茶館、藏醫診所與高原牧場。</p>
     </div>
 </div>
 
 <script>
-// 自動生成 100 位居民資料陣列（結合四大核心家族與多元職涯分配）
-const families = ["巴桑家族(嚮導)", "丹增藏醫家族", "鎮公所治安隊", "古寺僧侶", "客棧經營者", "手工藝匠人", "外來研究員", "高原牧民"];
-const occupations = ["登山嚮導", "藏醫", "織女", "客棧老闆", "唐卡畫師", "僧侶", "牧民", "氣象研究員", "治安員", "茶館老闆"];
+const canvas = document.getElementById('townMap');
+const ctx = canvas.getContext('2d');
 
-function generate100Residents() {
-    const list = [];
-    
-    // 手動精細寫入前 5 位核心居民
-    list.push({
-        id: 1, name: "巴桑·次仁", age: 58, family: "巴桑家族(嚮導)", occupation: "雪嶺鎮資深首席登山嚮導",
-        traits: ["沉穩責任感強", "高親和力", "保守傳統"],
-        motivation: "確保每一位登上雪山的鎮民與遊客安全歸來，維護山神尊嚴。",
-        routine: {"05:30": "於佛堂供水誦經", "08:30": "主持嚮導工會每日安全會報", "18:00": "與全家八口共進晚餐講述雪山傳說"},
-        relationships: ["央金·拉姆(妻子)", "索朗·巴桑(長子)", "巴桑·德吉(表弟/鎮長)"],
-        memories: ["2018年雪崩成功救出3名外國登山客", "堅信山頂吹起『雪觀音』雲霧時絕不能上山"]
-    });
+// 地圖場景區域設定
+const zones = [
+    { name: "古寺 (Monastery)", x: 50, y: 50, w: 180, h: 120, color: "#e74c3c" },
+    { name: "嚮導工會 (Guild)", x: 300, y: 50, w: 200, h: 120, color: "#3498db" },
+    { name: "藏醫診所 (Clinic)", x: 570, y: 50, w: 180, h: 120, color: "#2ecc71" },
+    { name: "雪豹茶館 (Tea House)", x: 180, y: 250, w: 220, h: 150, color: "#f39c12" },
+    { name: "高原牧場 (Pasture)", x: 480, y: 250, w: 270, h: 180, color: "#27ae60" },
+    { name: "雪山隘口 (Pass)", x: 50, y: 450, w: 350, h: 120, color: "#95a5a6" }
+];
 
-    list.push({
-        id: 2, name: "央金·拉姆", age: 55, family: "巴桑家族(嚮導)", occupation: "氂牛絨手工織品坊店主",
-        traits: ["熱情外向", "細心母性", "堅韌"],
-        motivation: "維持家庭和睦，並將藏式織絨技藝傳承給女兒。",
-        routine: {"06:00": "準備全家酥油茶與早餐", "10:30": "指導二女兒編織八吉祥圖案", "21:00": "轉動經輪為丈夫兒子祈福"},
-        relationships: ["巴桑·次仁(丈夫)", "德吉·巴桑(二女兒)"],
-        memories: ["年輕時是小鎮最漂亮的織女", "發現二女兒偷偷申請了大城市的服裝設計學校"]
-    });
+// 生成 100 位動態角色
+const agents = [];
+const names = ["巴桑", "央金", "索朗", "扎西", "艾米莉", "德吉", "嘎瑪", "次仁", "丹增", "尼瑪", "普布", "白瑪", "卓瑪", "洛桑"];
+const roles = ["嚮導", "藏醫", "織女", "客棧老闆", "畫師", "僧侶", "牧民", "研究員", "治安員"];
 
-    list.push({
-        id: 3, name: "索朗·巴桑", age: 28, family: "巴桑家族(嚮導)", occupation: "新銳登山嚮導 / 救援隊隊長",
-        traits: ["開朗冒險", "接受新事物", "自信"],
-        motivation: "引入現代化登山安全裝備與數據，改革小鎮古老的嚮導系統。",
-        routine: {"06:30": "晨跑5公里與查看衛星氣象APP", "14:00": "與艾米莉前往冰川檢查監測儀器", "19:00": "在酒吧與年輕嚮導聽搖滾樂"},
-        relationships: ["巴桑·次仁(父親)", "艾米莉(合作夥伴/暗戀)"],
-        memories: ["去年成功用無人機定位失蹤客", "考慮是否要自己出來創業開商業登山公司"]
-    });
-
-    list.push({
-        id: 4, name: "扎西·丹增", age: 62, family: "丹增藏醫家族", occupation: "雪嶺診所老藏醫",
-        traits: ["內向高冷", "極度責任心", "慈悲"],
-        motivation: "編撰喜馬拉雅瀕危高原藥草圖鑑，治癒鎮上每位關節痛的老人。",
-        routine: {"05:00": "採集清晨帶露水的藥草", "08:30": "開診為居民診脈開藥", "20:00": "整理《四部醫典》筆記"},
-        relationships: ["陸晨(徒弟)", "巴桑·次仁(老友)"],
-        memories: ["暴風雪中獨自深入4500公尺採集紅景天救活鎮長", "擔心現代西藥讓年輕人忘記藏醫智慧"]
-    });
-
-    list.push({
-        id: 5, name: "艾米莉·華森", age: 31, family: "外來研究員", occupation: "國際冰川氣候研究員",
-        traits: ["理性客觀", "好奇心強", "獨立"],
-        motivation: "收集喜馬拉雅冰川退縮數據，完成氣候變遷論文。",
-        routine: {"06:00": "檢查自動氣象站上傳數據", "08:00": "與索朗前往冰川採樣", "22:30": "與紐約的大學導師視訊會議"},
-        relationships: ["索朗·巴桑(嚮導/好友)", "扎西·丹增(學術交流者)"],
-        memories: ["在冰川深處發現30年前消失的探險隊遺物", "深深被雪嶺鎮夜晚無污染的星空震撼"]
-    });
-
-    // 自動擴充生成第 6 ~ 100 位居民
-    const firstNames = ["德吉", "嘎瑪", "次仁", "丹增", "索朗", "尼瑪", "普布", "白瑪", "卓瑪", "洛桑"];
-    const lastNames = ["巴桑", "扎西", "旺堆", "多吉", "拉姆", "平措", "詹姆斯", "陳"];
-
-    for (let i = 6; i <= 100; i++) {
-        const name = lastNames[i % lastNames.length] + "·" + firstNames[i % firstNames.length] + ` (${i})`;
-        const family = families[i % families.length];
-        const occ = occupations[i % occupations.length];
-        list.push({
-            id: i,
-            name: name,
-            age: 18 + (i * 3) % 65,
-            family: family,
-            occupation: occ,
-            traits: ["熱心", "適應力強", "重視傳統"],
-            motivation: `維護雪嶺鎮的${occ}發展，並照顧家庭。`,
-            routine: {"07:00": "起床進行晨禱與早餐", "12:00": "在小鎮廣場或茶館與鎮民交流", "19:00": "回家與家人共進晚餐"},
-            relationships: [`居民 #${(i*3)%100 + 1} (鄰居)`, `居民 #${(i*7)%100 + 1} (朋友)`],
-            memories: [`參與了雪嶺鎮第${i}屆雪山祭典`, "對小鎮最近的外來遊客增加感到好奇"]
-        });
-    }
-
-    return list;
-}
-
-const residents = generate100Residents();
-
-function renderList(items) {
-    const listEl = document.getElementById('resident-list');
-    listEl.innerHTML = '';
-    items.forEach(r => {
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.onclick = () => showDetail(r.id);
-        card.innerHTML = `
-            <strong>${r.name}</strong> (${r.age}歲) - ${r.occupation}<br>
-            <span class="tag">${r.family}</span>
-            <small style="color:#666">${r.traits.join(', ')}</small>
-        `;
-        listEl.appendChild(card);
+for (let i = 1; i <= 100; i++) {
+    // 隨機初始位置，分佈在小鎮道路與建築附近
+    const targetZone = zones[i % zones.length];
+    agents.push({
+        id: i,
+        name: names[i % names.length] + "·" + (i <= 5 ? ["次仁","拉姆","巴桑","丹增","華森"][i-1] : "諾布"),
+        role: roles[i % roles.length],
+        x: targetZone.x + Math.random() * (targetZone.w - 20) + 10,
+        y: targetZone.y + Math.random() * (targetZone.h - 20) + 10,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2,
+        color: `hsl(${(i * 37) % 360}, 70%, 60%)`,
+        currentAction: "正在小鎮巡視與工作",
+        targetZone: targetZone.name
     });
 }
 
-function showDetail(id) {
-    const r = residents.find(x => x.id === id);
-    const detailEl = document.getElementById('detail-panel');
-    
-    let routineHTML = '';
-    for(let time in r.routine) {
-        routineHTML += `<li><b>${time}:</b> ${r.routine[time]}</li>`;
-    }
+let selectedAgent = null;
+let isPaused = false;
+let gameMinutes = 480; // 從早上 8:00 開始
 
-    detailEl.innerHTML = `
-        <h2>${r.name}</h2>
-        <p><b>年齡：</b>${r.age} 歲 | <b>職業：</b>${r.occupation}</p>
-        <p><b>所屬社群/家庭：</b><span class="tag">${r.family}</span></p>
-        <p><b>性格特質 (Big Five)：</b>${r.traits.map(t => `<span class="tag">${t}</span>`).join('')}</p>
-        <p><b>核心動機：</b>${r.motivation}</p>
+// 繪製喜馬拉雅山背景與建築物
+function drawEnvironment() {
+    // 雪山背景顏色
+    ctx.fillStyle = "#d5e8d4";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 繪製道路
+    ctx.strokeStyle = "#d0b585";
+    ctx.lineWidth = 25;
+    ctx.beginPath();
+    ctx.moveTo(140, 110); ctx.lineTo(400, 110); ctx.lineTo(400, 325); ctx.lineTo(615, 325);
+    ctx.moveTo(400, 325); ctx.lineTo(220, 510);
+    ctx.stroke();
+
+    // 繪製各個建築物區域
+    zones.forEach(z => {
+        ctx.fillStyle = z.color;
+        ctx.globalAlpha = 0.3;
+        ctx.fillRect(z.x, z.y, z.w, z.h);
+        ctx.globalAlpha = 1.0;
+        ctx.strokeStyle = z.color;
+        ctx.lineWidth = 2;
+        ctx.strokeRect(z.x, z.y, z.w, z.h);
+
+        // 標籤名稱
+        ctx.fillStyle = "#2c3e50";
+        ctx.font = "bold 13px sans-serif";
+        ctx.fillText(z.name, z.x + 10, z.y + 20);
+    });
+}
+
+// 繪製 100 位居民並更新位置
+function drawAgents() {
+    agents.forEach(a => {
+        if (!isPaused) {
+            // 人物移動邏輯
+            a.x += a.vx;
+            a.y += a.vy;
+
+            // 撞牆反彈邊界
+            if (a.x < 15 || a.x > canvas.width - 15) a.vx *= -1;
+            if (a.y < 15 || a.y > canvas.height - 15) a.vy *= -1;
+
+            // 偶爾隨機改變方向，模擬真實走動
+            if (Math.random() < 0.02) {
+                a.vx = (Math.random() - 0.5) * 1.5;
+                a.vy = (Math.random() - 0.5) * 1.5;
+            }
+        }
+
+        // 繪製角色像素圓圈
+        ctx.beginPath();
+        ctx.arc(a.x, a.y, 6, 0, Math.PI * 2);
+        ctx.fillStyle = a.color;
+        ctx.fill();
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        // 如果被選中，繪製光圈標記
+        if (selectedAgent && selectedAgent.id === a.id) {
+            ctx.beginPath();
+            ctx.arc(a.x, a.y, 11, 0, Math.PI * 2);
+            ctx.strokeStyle = "#f1c40f";
+            ctx.lineWidth = 3;
+            ctx.stroke();
+        }
+    });
+}
+
+// 點擊地圖選擇角色
+canvas.addEventListener('click', (e) => {
+    const rect = canvas.getBoundingClientRect();
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+
+    // 尋找點擊到的最近 Agent
+    let found = null;
+    agents.forEach(a => {
+        const dist = Math.hypot(a.x - mouseX, a.y - mouseY);
+        if (dist < 12) found = a;
+    });
+
+    if (found) {
+        selectedAgent = found;
+        updateSidebar(found);
+    }
+});
+
+// 更新右側面板
+function updateSidebar(a) {
+    const sidebar = document.getElementById('sidebar');
+    sidebar.innerHTML = `
+        <h2>👤 ${a.name}</h2>
+        <p><b>身分：</b><span class="tag">${a.role}</span> (居民 #${a.id})</p>
+        <p><b>目前所在位置：</b>📍 ${a.targetZone}</p>
+        <p><b>座標：</b>(X: ${Math.round(a.x)}, Y: ${Math.round(a.y)})</p>
         
-        <h4>⏰ 每日作息 (Daily Routine)</h4>
-        <div class="routine-list"><ul>${routineHTML}</ul></div>
+        <div class="status-box">
+            <h4>🔄 即時 Agent 行為 (Current Action)</h4>
+            <p>「${a.name} ${a.currentAction}，正前往與附近的鎮民交流。」</p>
+        </div>
 
-        <h4>🔗 人際關係網 (Relationships)</h4>
-        <ul>${r.relationships.map(rel => `<li>${rel}</li>`).join('')}</ul>
-
-        <h4>🧠 種子記憶 (Seed Memories)</h4>
-        <ul>${r.memories.map(m => `<li>${m}</li>`).join('')}</ul>
-
-        <div class="dialogue-box">
-            <h4>💬 Agent 自動對話模擬</h4>
-            <p><i>「扎西大夫，關於這次登山季的氣象監測，你怎麼看？」</i></p>
-            <p><b>${r.name}：</b>「我們的祖先看雲，現代人看手機，但只要能保護大家，不管是山神還是衛星我都敬重。」</p>
+        <div class="status-box" style="border-color:#3498db;">
+            <h4>💬 Agent 記憶與記憶流 (Memory Stream)</h4>
+            <ul>
+                <li>記憶 1：早上 08:00 在 ${a.targetZone} 完成每日祈福。</li>
+                <li>記憶 2：聽到關於雪崩預警與觀光季的討論。</li>
+            </ul>
         </div>
     `;
 }
 
-function filterResidents() {
-    const query = document.getElementById('search').value.toLowerCase();
-    const filtered = residents.filter(r => 
-        r.name.toLowerCase().includes(query) || 
-        r.occupation.toLowerCase().includes(query) ||
-        r.family.toLowerCase().includes(query)
-    );
-    renderList(filtered);
+// 模擬時間與動畫循環
+function loop() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawEnvironment();
+    drawAgents();
+
+    if (!isPaused) {
+        gameMinutes += 0.2;
+        if (gameMinutes >= 1440) gameMinutes = 0; // 24小時循環
+        const hrs = String(Math.floor(gameMinutes / 60)).padStart(2, '0');
+        const mins = String(Math.floor(gameMinutes % 60)).padStart(2, '0');
+        document.getElementById('game-time').innerText = `${hrs}:${mins}`;
+    }
+
+    requestAnimationFrame(loop);
 }
 
-// 初始化渲染
-renderList(residents);
-showDetail(1);
+function togglePause() {
+    isPaused = !isPaused;
+}
+
+// 啟動動畫
+loop();
 </script>
 
 </body>
