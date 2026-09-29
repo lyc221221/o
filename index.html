@@ -1,1 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Agents - 完整精緻 1:1 模擬器</title>
+    <style>
+        body { font-family: 'Courier New', Courier, monospace, sans-serif; background: #2b2b2b; color: #ffffff; margin: 0; padding: 10px; text-align: center; }
+        .container { max-width: 1400px; margin: 0 auto; display: flex; flex-direction: column; align-items: center; }
+        canvas { border: 4px solid #4a4a4a; background: #7cd965; cursor: pointer; image-rendering: pixelated; box-shadow: 0 10px 25px rgba(0,0,0,0.7); }
+        .dashboard { display: flex; gap: 15px; margin-top: 15px; width: 1000px; justify-content: space-between; }
+        .panel { background: #3c3f41; border: 2px solid #555; border-radius: 6px; padding: 12px; width: 48%; text-align: left; font-size: 13px; }
+        .tag { background: #2b5b84; color: #fff; padding: 2px 6px; border-radius: 3px; font-size: 11px; }
+        .dialogue-log { background: #1e1e1e; padding: 8px; border-radius: 4px; font-family: monospace; border-left: 3px solid #f39c12; margin-top: 5px; }
+        h3 { margin: 0 0 8px 0; color: #f1c40f; border-bottom: 1px solid #555; padding-bottom: 4px; }
+    </style>
+</head>
+<body>
 
+<div class="container">
+    <h2>🏔️ Generative Agents: Smallville 1:1 全細節重現模擬器</h2>
+    <p>⏰ 時間: <span id="game-time" style="color:#f1c40f;">08:30 AM</span> | 包含論文 1:1 室內家具場景與多樣化麥塊方塊居民角色</p>
+
+    <!-- 主地圖畫布 -->
+    <canvas id="townMap" width="1000" height="620"></canvas>
+
+    <div class="dashboard">
+        <div class="panel" id="persona-panel">
+            <h3>👤 Agent Persona 狀態</h3>
+            <p>請點擊地圖上的 Agent 檢視行為與記憶。</p>
+        </div>
+        <div class="panel" id="dialogue-panel">
+            <h3>💬 實時對話日誌 (Real-time Dialogue)</h3>
+            <div class="dialogue-log" id="log-content">系統運行中...</div>
+        </div>
+    </div>
+</div>
+
+<script>
+const canvas = document.getElementById('townMap');
+const ctx = canvas.getContext('2d');
+
+// 1. 多樣化髮型與造型庫
+const hairStyles = [
+    { type: "steve", color: "#4a235a", hatColor: null },           // 史蒂夫短髮
+    { type: "red_hat", color: "#2c3e50", hatColor: "#e74c3c" },      // 紅色鴨舌帽
+    { type: "hat_cap", color: "#7f8c8d", hatColor: "#f39c12" },      // 黃色氈帽
+    { type: "long_blonde", color: "#f1c40f", hatColor: null },     // 金色長髮
+    { type: "hoodie", color: "#16a085", hatColor: "#16a085" },       // 兜帽
+    { type: "cowboy", color: "#5d4037", hatColor: "#795548" }        // 牛仔帽
+];
+
+const skinTones = ["#ffcc99", "#f1c27d", "#e0ac69", "#c68642", "#8d5524"];
+const shirtColors = ["#e74c3c", "#f1c40f", "#3498db", "#2ecc71", "#9b59b6", "#e67e22", "#1abc9c", "#e84393"];
+const pantsColors = ["#2c3e50", "#7f8c8d", "#34495e", "#5d4037", "#1a5276"];
+
+const names = ["瑪麗亞", "克勞斯", "阿比蓋爾", "約翰", "湯姆", "巴桑", "扎西", "艾米莉", "索朗", "央金"];
+const initials = ["MA", "KM", "AC", "JN", "TM", "PS", "TS", "EW", "SL", "YK"];
+
+const agents = [];
+for (let i = 1; i <= 100; i++) {
+    agents.push({
+        id: i,
+        name: names[i % names.length] + (i > 10 ? `_${i}` : ""),
+        init: initials[i % initials.length],
+        x: 60 + Math.random() * 880,
+        y: 80 + Math.random() * 480,
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2,
+        hair: hairStyles[i % hairStyles.length],
+        skin: skinTones[i % skinTones.length],
+        shirt: shirtColors[i % shirtColors.length],
+        pants: pantsColors[i % pantsColors.length],
+        stepFrame: Math.floor(Math.random() * 20),
+        action: "正在雪山咖啡館與朋友聊天",
+        thought: "「今天天氣真好，要來一杯咖啡嗎？」"
+    });
+}
+
+let selectedAgent = agents[0];
+
+// 2. 繪製 1:1 論文風格建築與家具細節
+function drawSmallvilleMap() {
+    // A. 背景草地
+    ctx.fillStyle = "#7cd965";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // 頂部樹木
+    for(let x = 20; x < 980; x += 35) {
+        ctx.fillStyle = "#2e7d32"; ctx.beginPath(); ctx.arc(x, 25, 16, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#4caf50"; ctx.beginPath(); ctx.arc(x-3, 22, 11, 0, Math.PI*2); ctx.fill();
+    }
+
+    // B. 室內地板區域繪製 (咖啡館、酒吧、宿舍與洗手間)
+    ctx.fillStyle = "#f5c6cb"; ctx.fillRect(40, 100, 180, 220); // 酒吧區
+    ctx.fillStyle = "#f7dc6f"; ctx.fillRect(230, 100, 220, 220); // 咖啡廳
+    ctx.fillStyle = "#e5e7e9"; ctx.fillRect(460, 100, 240, 220); // 宿舍
+    ctx.fillStyle = "#d4efdf"; ctx.fillRect(710, 100, 230, 220); // 洗手間
+
+    // C. 牆體 (雙層灰白邊框結構)
+    ctx.strokeStyle = "#424949"; ctx.lineWidth = 8;
+    ctx.strokeRect(40, 100, 900, 220);
+    ctx.beginPath();
+    ctx.moveTo(220, 100); ctx.lineTo(220, 320);
+    ctx.moveTo(450, 100); ctx.lineTo(450, 320);
+    ctx.moveTo(700, 100); ctx.lineTo(700, 320);
+    ctx.stroke();
+
+    // D. 原著家具繪製
+    ctx.fillStyle = "#b2babb"; ctx.fillRect(55, 180, 140, 22); // 吧檯
+    for(let bx = 65; bx <= 175; bx += 30) {
+        ctx.fillStyle = "#78281f"; ctx.fillRect(bx, 212, 14, 14); // 高腳椅
+    }
+    
+    ctx.fillStyle = "#a04000"; ctx.fillRect(320, 180, 50, 40); // 咖啡廳大餐桌
+    ctx.fillStyle = "#e74c3c"; ctx.fillRect(300, 185, 12, 12); ctx.fillRect(300, 205, 12, 12); // 紅椅
+    ctx.fillStyle = "#f1c40f"; ctx.fillRect(380, 185, 12, 12); ctx.fillRect(380, 205, 12, 12); // 黃椅
+    ctx.fillStyle = "#1b2631"; ctx.fillRect(390, 250, 35, 45); // 鋼琴
+
+    ctx.fillStyle = "#e67e22"; ctx.fillRect(480, 120, 30, 45); // 單人床
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(480, 120, 30, 12); // 枕頭
+    
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(730, 115, 18, 22); ctx.fillRect(840, 115, 18, 22); // 馬桶
+    ctx.fillStyle = "#3498db"; ctx.fillRect(770, 115, 20, 15); ctx.fillRect(880, 115, 20, 15); // 洗手台
+
+    ctx.fillStyle = "#7e5109";
+    ctx.fillRect(100, 320, 40, 18); ctx.fillRect(310, 320, 40, 18);
+    ctx.fillRect(550, 320, 40, 18); ctx.fillRect(800, 320, 40, 18); // 階梯
+
+    ctx.fillStyle = "#f5cba7"; ctx.fillRect(0, 370, 1000, 35); // 幹道
+}
+
+// 3. 繪製精細麥塊/RPG 方塊角色 (回復多樣造型與擺腿)
+function drawMinecraftAgent(a) {
+    const x = Math.round(a.x);
+    const y = Math.round(a.y);
+    const isSelected = selectedAgent && selectedAgent.id === a.id;
+
+    if (isSelected) {
+        ctx.strokeStyle = "#f1c40f"; ctx.lineWidth = 2;
+        ctx.strokeRect(x - 12, y - 28, 24, 38);
+    }
+
+    // 1. 影子
+    ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.fillRect(x - 7, y + 8, 14, 4);
+
+    // 2. 雙腳 (走路動態)
+    ctx.fillStyle = a.pants;
+    const legOffset = (Math.floor(a.stepFrame / 4) % 2 === 0) ? 2 : -2;
+    ctx.fillRect(x - 5, y + 1, 4, 7 + legOffset);
+    ctx.fillRect(x + 1, y + 1, 4, 7 - legOffset);
+
+    // 3. 軀幹/衣服
+    ctx.fillStyle = a.shirt;
+    ctx.fillRect(x - 6, y - 10, 12, 11);
+
+    // 4. 頭部/膚色
+    ctx.fillStyle = a.skin;
+    ctx.fillRect(x - 6, y - 21, 12, 11);
+
+    // 5. 眼睛
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 17, 3, 3); ctx.fillRect(x + 1, y - 17, 3, 3);
+    ctx.fillStyle = "#2c3e50"; ctx.fillRect(x - 3, y - 16, 2, 2); ctx.fillRect(x + 2, y - 16, 2, 2);
+
+    // 6. 髮型與帽子細節
+    if (a.hair.hatColor) {
+        ctx.fillStyle = a.hair.hatColor;
+        ctx.fillRect(x - 7, y - 24, 14, 4);
+        ctx.fillRect(x - 5, y - 27, 10, 3);
+    } else {
+        ctx.fillStyle = a.hair.color;
+        ctx.fillRect(x - 6, y - 23, 12, 3);
+        ctx.fillRect(x - 7, y - 21, 2, 5);
+        ctx.fillRect(x + 5, y - 21, 2, 5);
+    }
+
+    // 7. 對話泡泡 (KM: 💬)
+    ctx.fillStyle = "rgba(255, 255, 255, 0.95)";
+    ctx.fillRect(x - 16, y - 38, 32, 13);
+    ctx.strokeStyle = "#000000"; ctx.lineWidth = 1;
+    ctx.strokeRect(x - 16, y - 38, 32, 13);
+
+    ctx.fillStyle = "#000000"; ctx.font = "bold 9px monospace";
+    ctx.fillText(`${a.init}:💬`, x - 13, y - 28);
+}
+
+// 4. 特寫放大鏡卡片
+function drawMagnifierOverlay() {
+    if (!selectedAgent) return;
+
+    ctx.fillStyle = "rgba(50, 50, 50, 0.85)";
+    ctx.fillRect(20, 20, 280, 75);
+    ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 3;
+    ctx.strokeRect(20, 20, 280, 75);
+
+    ctx.fillStyle = "#ffffff"; ctx.font = "bold 12px sans-serif";
+    ctx.fillText(`Joining for coffee at a cafe`, 35, 40);
+
+    ctx.fillStyle = "#f1c40f"; ctx.font = "11px monospace";
+    ctx.fillText(`[${selectedAgent.name}]: Hey, mind if I join you?`, 35, 60);
+    ctx.fillText(`[Klaus]: Not at all! How are you?`, 35, 78);
+}
+
+function updatePanels(a) {
+    document.getElementById('persona-panel').innerHTML = `
+        <h3>👤 ${a.name} (${a.init})</h3>
+        <p><b>當前狀態：</b><span class="tag">${a.action}</span></p>
+        <p><b>即時想法：</b>${a.thought}</p>
+        <p><b>當前座標：</b>X: ${Math.round(a.x)}, Y: ${Math.round(a.y)}</p>
+    `;
+
+    document.getElementById('log-content').innerHTML = `
+        <b>[${a.name}]</b>: 「${a.thought}」<br>
+        <small style="color:#aaa;">- 10 秒前記錄於雪山咖啡館</small>
+    `;
+}
+
+function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawSmallvilleMap();
+
+    agents.forEach(a => {
+        a.x += a.vx; a.y += a.vy; a.stepFrame++;
+
+        if (a.x < 30 || a.x > canvas.width - 30) a.vx *= -1;
+        if (a.y < 40 || a.y > canvas.height - 40) a.vy *= -1;
+
+        drawMinecraftAgent(a);
+    });
+
+    drawMagnifierOverlay();
+    if (selectedAgent) updatePanels(selectedAgent);
+}
+
+setInterval(draw, 33);
+
+canvas.addEventListener('click', e => {
+    const rect = canvas.getBoundingClientRect();
+    const mx = (e.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (e.clientY - rect.top) * (canvas.height / rect.height);
+
+    selectedAgent = agents
+        .map(a => ({ agent: a, dist: Math.hypot(a.x - mx, a.y - my) }))
+        .filter(i => i.dist <= 20)
+        .sort((a, b) => a.dist - b.dist)[0]?.agent || selectedAgent;
+
+    if (selectedAgent) updatePanels(selectedAgent);
+});
+
+updatePanels(selectedAgent);
+</script>
+</body>
+</html>
