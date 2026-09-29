@@ -3,39 +3,38 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>喜馬拉雅山「雪嶺鎮」- 2D 像素小鎮與關係網模擬器</title>
+    <title>喜馬拉雅山「雪嶺鎮」- RPG 麥塊風格模擬器</title>
     <style>
-        body { font-family: sans-serif; background: #1a2634; color: #ecf0f1; margin: 0; padding: 15px; text-align: center; }
-        .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1400px; margin: 0 auto; flex-wrap: wrap; }
-        canvas { border: 4px solid #f1c40f; border-radius: 8px; background: #a2d5c6; cursor: pointer; image-rendering: pixelated; box-shadow: 0 8px 16px rgba(0,0,0,0.5); }
-        .sidebar { background: #243342; border-radius: 8px; padding: 15px; width: 300px; text-align: left; max-height: 520px; overflow-y: auto; }
-        .relationship-panel { background: #243342; border-radius: 8px; padding: 15px; width: 320px; text-align: center; }
-        .status-box { background: #1e2b37; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; text-align: left; }
-        .tag { display: inline-block; background: #e1f5fe; color: #0288d1; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin: 2px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #1b2631; color: #ecf0f1; margin: 0; padding: 15px; text-align: center; }
+        .main-layout { display: flex; justify-content: center; gap: 15px; max-width: 1450px; margin: 0 auto; flex-wrap: wrap; }
+        canvas { border: 4px solid #f39c12; border-radius: 8px; background: #58d68d; cursor: pointer; image-rendering: pixelated; box-shadow: 0 10px 20px rgba(0,0,0,0.6); }
+        .sidebar { background: #2c3e50; border-radius: 8px; padding: 15px; width: 300px; text-align: left; max-height: 580px; overflow-y: auto; }
+        .relationship-panel { background: #2c3e50; border-radius: 8px; padding: 15px; width: 320px; text-align: center; }
+        .status-box { background: #1a252f; padding: 10px; border-radius: 5px; margin-top: 10px; border-left: 4px solid #e74c3c; font-size: 13px; text-align: left; }
+        .tag { display: inline-block; background: #3498db; color: white; padding: 2px 6px; border-radius: 4px; font-size: 11px; margin: 2px; }
         .coordinate { color: #f1c40f; font-family: monospace; font-size: 14px; }
-        h3 { margin-top: 0; color: #f1c40f; border-bottom: 2px solid #3498db; padding-bottom: 8px; text-align: left; }
-        #relationGraph { background: #1a2634; border: 2px solid #34495e; border-radius: 6px; }
-        @media (max-width: 1024px) { .main-layout { flex-direction: column; align-items: center; } .sidebar, .relationship-panel { width: min(320px, calc(100% - 30px)); } }
+        h3 { margin-top: 0; color: #f39c12; border-bottom: 2px solid #3498db; padding-bottom: 8px; text-align: left; }
+        #relationGraph { background: #15202b; border: 2px solid #34495e; border-radius: 6px; }
     </style>
 </head>
 <body>
-    <h2>🏔️ 喜馬拉雅山「雪嶺鎮」- 100 位居民獨立 Persona & 關係圖</h2>
-    <p>⏰ 模擬時間：<span id="game-time" style="color:#f1c40f;">08:00 AM</span> | 點擊像素小人可查看個別個性、記憶與視覺化人際網絡</p>
+    <h2>🏔️ 喜馬拉雅山「雪嶺鎮」- Generative Agents RPG 模擬器</h2>
+    <p>⏰ 模擬時間：<span id="game-time" style="color:#f1c40f;">08:30 AM</span> | 模仿 Smallville RPG 場景與多樣化麥塊方塊人物</p>
 
     <div class="main-layout">
-        <!-- 2D 像素小鎮地圖 -->
-        <canvas id="townMap" width="680" height="520"></canvas>
+        <!-- RPG 精致地圖 Canvas -->
+        <canvas id="townMap" width="720" height="580"></canvas>
         
-        <!-- 居民詳細 Persona 面板 -->
+        <!-- Persona 細節面板 -->
         <div class="sidebar" id="sidebar">
-            <h3>👤 請點擊地圖上的小人</h3>
-            <p style="color:#bdc3c7;">點擊小人即可查看該居民的獨立姓名、性格與作息記憶。</p>
+            <h3>👤 請點擊地圖上的角色</h3>
+            <p style="color:#bdc3c7;">點擊角色可查看獨立麥塊造型、動作對話與記憶。</p>
         </div>
 
-        <!-- 視覺化人際關係圖網 -->
+        <!-- 關係網絡圖 Panel -->
         <div class="relationship-panel">
-            <h3 style="text-align:center;">🕸️ 人際關係網絡圖</h3>
-            <canvas id="relationGraph" width="290" height="420"></canvas>
+            <h3 style="text-align:center;">🕸️ 人際關係圖網</h3>
+            <canvas id="relationGraph" width="290" height="480"></canvas>
         </div>
     </div>
 
@@ -46,198 +45,240 @@ const graphCanvas = document.getElementById('relationGraph');
 const graphCtx = graphCanvas.getContext('2d');
 const sidebar = document.getElementById('sidebar');
 
-// 1. 建築物區域
+// 1. RPG 建築物與區域 (仿 Smallville 地圖結構)
 const zones = [
-    { name: "🏔️ 古寺", x: 40, y: 50, w: 140, h: 90, color: "#d63031", roof: "#81ecec" },
-    { name: "🏠 嚮導工會", x: 250, y: 50, w: 150, h: 90, color: "#0984e3", roof: "#fdcb6e" },
-    { name: "🏥 藏醫診所", x: 480, y: 50, w: 150, h: 90, color: "#00b894", roof: "#fab1a0" },
-    { name: "🍵 雪豹茶館", x: 120, y: 240, w: 170, h: 100, color: "#e17055", roof: "#ffeaa7" },
-    { name: "🌾 牧場", x: 400, y: 240, w: 220, h: 140, color: "#55efc4", roof: "#a29bfe" }
+    { id: "monastery", name: "雪嶺古寺", x: 40, y: 40, w: 180, h: 140, floorColor: "#d5c8a0", wallColor: "#a93226" },
+    { id: "guild", name: "嚮導工會", x: 270, y: 40, w: 180, h: 140, floorColor: "#f5cba7", wallColor: "#2e4053" },
+    { id: "clinic", name: "藏醫診所", x: 500, y: 40, w: 180, h: 140, floorColor: "#a2d9ce", wallColor: "#117a65" },
+    { id: "cafe", name: "雪山咖啡館", x: 80, y: 260, w: 220, h: 160, floorColor: "#edbb99", wallColor: "#d35400" },
+    { id: "park", name: "中央公園與小橋", x: 360, y: 260, w: 320, h: 280, floorColor: "#58d68d", wallColor: "#27ae60" }
 ];
 
-// 2. 名字與 Persona 庫生成數據
-const firstNames = ["巴桑", "央金", "索朗", "扎西", "艾米莉", "德吉", "嘎瑪", "次仁", "丹增", "尼瑪", "普布", "白瑪", "卓瑪", "洛桑", "平措", "旺堆", "多吉", "拉姆"];
-const lastNames = ["次仁", "拉姆", "巴桑", "丹增", "華森", "諾布", "平措", "旺堆", "詹姆斯", "陳", "格桑", "達瓦"];
-const occupations = ["登山嚮導", "藏醫", "織女", "客棧老闆", "唐卡畫師", "僧侶", "氂牛牧民", "氣象研究員", "治安隊員", "茶館掌櫃", "銀匠", "小學教師"];
+// 2. 多樣化麥塊髮型與裝扮樣式數據
+const hairStyles = [
+    { type: "steve", color: "#4a235a", hatColor: null },           // 史蒂夫短髮
+    { type: "red_hat", color: "#2c3e50", hatColor: "#e74c3c" },      // 紅色鴨舌帽
+    { type: "hat_cap", color: "#7f8c8d", hatColor: "#f39c12" },      // 黃色氈帽
+    { type: "long_blonde", color: "#f1c40f", hatColor: null },     // 金色長髮
+    { type: "hoodie", color: "#16a085", hatColor: "#16a085" },       // 兜帽
+    { type: "cowboy", color: "#5d4037", hatColor: "#795548" }        // 牛仔帽
+];
+
+const skinTones = ["#ffcc99", "#f1c27d", "#e0ac69", "#c68642", "#8d5524"];
+const shirtColors = ["#e74c3c", "#3498db", "#2ecc71", "#9b59b6", "#e67e22", "#1abc9c", "#34495e", "#d35400"];
+const pantsColors = ["#2c3e50", "#7f8c8d", "#34495e", "#5d4037", "#1a5276"];
+
+const firstNames = ["巴桑", "央金", "索朗", "扎西", "艾米莉", "德吉", "嘎瑪", "次仁", "丹增", "尼瑪", "白瑪", "卓瑪", "洛桑", "平措", "旺堆", "多吉"];
+const lastNames = ["次仁", "拉姆", "巴桑", "丹增", "華森", "諾布", "平措", "旺堆", "詹姆斯", "陳", "格桑"];
+const occupations = ["登山嚮導", "藏醫", "織女", "咖啡師", "畫師", "僧侶", "牧民", "氣象研究員", "治安隊員", "小學教師"];
 
 const personalityList = [
-    ["沉穩責任感強", "保守傳統", "謹慎"],
+    ["沉穩責任感強", "高親和力", "謹慎"],
     ["熱情外向", "細心母性", "堅韌"],
     ["開朗冒險", "接受新事物", "自信"],
     ["內向高冷", "極度責任心", "慈悲"],
-    ["理性客觀", "好奇心強", "獨立"],
-    ["幽默風趣", "擅長社交", "隨和"],
-    ["默默做事", "忠誠", "老實"]
+    ["理性客觀", "好奇心強", "獨立"]
 ];
 
-const coatColors = ["#e74c3c", "#3498db", "#2ecc71", "#e67e22", "#9b59b6", "#f1c40f", "#1abc9c", "#e84393", "#d35400", "#16a085"];
+const thoughts = ["在喝咖啡呢！", "今天天氣真好～", "準備整理登山裝備", "想去公園散散步", "討論雪崩防範作業"];
 
-// 3. 生成 100 位擁有獨特 Persona 的 Agent (放慢走路速度)
+// 3. 生成 100 位麥塊/RPG 角色 (恢復原速走動)
 const agents = [];
 for (let i = 1; i <= 100; i++) {
-    const fn = firstNames[(i * 3) % firstNames.length];
-    const ln = lastNames[(i * 7) % lastNames.length];
-    
+    const fn = firstNames[i % firstNames.length];
+    const ln = lastNames[(i * 3) % lastNames.length];
+    const initials = (fn[0] + (ln[0] || "")).toUpperCase();
+
     agents.push({
         id: i,
         name: `${fn}·${ln}`,
-        age: 18 + (i * 5) % 52,
+        initials: initials,
+        age: 19 + (i * 7) % 48,
         occupation: occupations[i % occupations.length],
         traits: personalityList[i % personalityList.length],
-        x: 60 + Math.random() * 550,
-        y: 80 + Math.random() * 380,
-        // 🚶 放慢走路速度 (從 1.5 降為 0.4 ~ 0.5)
-        vx: (Math.random() - 0.5) * 0.45,
-        vy: (Math.random() - 0.5) * 0.45,
-        coatColor: coatColors[i % coatColors.length],
-        memory: `早上 08:30 在${zones[i % zones.length].name}參與社群活動與日常作息。`,
+        x: 60 + Math.random() * 600,
+        y: 80 + Math.random() * 450,
+        // 🚶 恢復正常流暢移動速度
+        vx: (Math.random() - 0.5) * 1.2,
+        vy: (Math.random() - 0.5) * 1.2,
+        hair: hairStyles[i % hairStyles.length],
+        skin: skinTones[i % skinTones.length],
+        shirt: shirtColors[i % shirtColors.length],
+        pants: pantsColors[i % pantsColors.length],
+        thought: thoughts[i % thoughts.length],
         stepFrame: Math.floor(Math.random() * 20),
         relations: []
     });
 }
 
-// 建立 100 位居民的人際關聯圖 (親戚、朋友、同事、師徒、鄰居)
-const relationTypes = ["親戚", "好友", "同事", "師徒", "鄰居"];
+// 人際網生成
 agents.forEach(a => {
-    const count = 2 + (a.id % 3); // 每個角色 2~4 個關聯對象
+    const count = 2 + (a.id % 3);
     for (let k = 0; k < count; k++) {
-        const targetId = ((a.id * 17 + k * 23) % 100) + 1;
+        const targetId = ((a.id * 13 + k * 19) % 100) + 1;
         if (targetId !== a.id) {
             a.relations.push({
                 targetId: targetId,
-                type: relationTypes[(a.id + k) % relationTypes.length]
+                type: ["親戚", "好友", "同事", "師徒", "鄰居"][(a.id + k) % 5]
             });
         }
     }
 });
 
-let selectedAgent = agents[0]; // 預設選擇第一位居民
+let selectedAgent = agents[0];
 
-// 繪製像素風格地圖與場景
-function drawPixelScene() {
-    ctx.fillStyle = "#81c784"; ctx.fillRect(0, 0, canvas.width, canvas.height); // 草地
-    ctx.fillStyle = "#d7ccc8"; // 鋪設街道
-    ctx.fillRect(150, 140, 350, 35); ctx.fillRect(180, 140, 35, 200);
-    ctx.fillRect(450, 140, 35, 200); ctx.fillRect(90, 330, 480, 35);
+// 繪製 RPG 風格精緻場景 (仿 Generative Agents 論文圖)
+function drawRPGScene() {
+    // 草地
+    ctx.fillStyle = "#58d68d"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // 遠山雪峰背景
-    ctx.fillStyle = "#b2ebf2"; ctx.beginPath();
-    ctx.moveTo(0, 0); ctx.lineTo(90, 35); ctx.lineTo(180, 0);
-    ctx.lineTo(320, 45); ctx.lineTo(480, 0); ctx.lineTo(680, 50);
-    ctx.lineTo(680, 0); ctx.fill();
+    // 小溪與木橋
+    ctx.fillStyle = "#5dade2"; ctx.fillRect(480, 260, 40, 320); // 河流
+    ctx.fillStyle = "#a04000"; ctx.fillRect(470, 380, 60, 25); // 木橋
+    ctx.fillStyle = "#f5cba7"; ctx.fillRect(470, 383, 60, 19);
 
-    // 房屋建築
+    // 鵝卵石街道
+    ctx.fillStyle = "#ebedef";
+    ctx.fillRect(220, 100, 50, 200); ctx.fillRect(220, 200, 300, 40);
+    ctx.fillRect(80, 420, 420, 40);
+
+    // 繪製各個建築物室內與家具
     zones.forEach(z => {
-        ctx.fillStyle = z.color; ctx.fillRect(z.x, z.y + 20, z.w, z.h - 20);
-        ctx.fillStyle = z.roof; ctx.beginPath();
-        ctx.moveTo(z.x - 8, z.y + 20); ctx.lineTo(z.x + z.w / 2, z.y); ctx.lineTo(z.x + z.w + 8, z.y + 20); ctx.fill();
-        ctx.fillStyle = "#5d4037"; ctx.fillRect(z.x + z.w / 2 - 9, z.y + z.h - 22, 18, 22);
-        ctx.fillStyle = "#ffe082"; ctx.fillRect(z.x + 12, z.y + 35, 16, 16); ctx.fillRect(z.x + z.w - 28, z.y + 35, 16, 16);
-        ctx.fillStyle = "#2c3e50"; ctx.font = "bold 12px sans-serif"; ctx.fillText(z.name, z.x + 8, z.y + z.h + 14);
+        if (z.id !== "park") {
+            // 地板
+            ctx.fillStyle = z.floorColor; ctx.fillRect(z.x, z.y, z.w, z.h);
+            // 牆壁邊框
+            ctx.strokeStyle = z.wallColor; ctx.lineWidth = 6; ctx.strokeRect(z.x, z.y, z.w, z.h);
+
+            // 室內家具：桌椅與櫃檯
+            ctx.fillStyle = "#795548";
+            ctx.fillRect(z.x + 20, z.y + 20, 35, 25); // 桌子
+            ctx.fillRect(z.x + z.w - 50, z.y + 20, 30, 20); // 櫃檯
+
+            // 門口
+            ctx.fillStyle = z.floorColor;
+            ctx.fillRect(z.x + z.w / 2 - 15, z.y + z.h - 4, 30, 8);
+        }
+
+        // 標籤招牌
+        ctx.fillStyle = "#2c3e50"; ctx.font = "bold 12px sans-serif";
+        ctx.fillText(z.name, z.x + 10, z.y - 6);
+    });
+
+    // 公園裝飾：樹木與花草
+    const trees = [[380, 300], [420, 450], [620, 310], [600, 480], [30, 480]];
+    trees.forEach(([tx, ty]) => {
+        ctx.fillStyle = "#1e8449"; ctx.beginPath(); ctx.arc(tx, ty, 14, 0, Math.PI*2); ctx.fill();
+        ctx.fillStyle = "#27ae60"; ctx.beginPath(); ctx.arc(tx-3, ty-3, 9, 0, Math.PI*2); ctx.fill();
     });
 }
 
-// 繪製放慢動作的像素小人
-function drawPixelAgent(a) {
+// 繪製麥塊/RPG 方塊角色 (Minecraft Square Style)
+function drawMinecraftAgent(a) {
     const x = Math.round(a.x);
     const y = Math.round(a.y);
     const isSelected = selectedAgent && selectedAgent.id === a.id;
 
+    // 選擇指引光圈
     if (isSelected) {
-        ctx.fillStyle = "#f1c40f"; ctx.beginPath();
-        ctx.moveTo(x - 5, y - 26); ctx.lineTo(x + 5, y - 26); ctx.lineTo(x, y - 18); ctx.fill();
+        ctx.strokeStyle = "#f39c12"; ctx.lineWidth = 3;
+        ctx.strokeRect(x - 12, y - 28, 24, 38);
     }
 
-    // 影子
-    ctx.fillStyle = "rgba(0,0,0,0.25)"; ctx.beginPath(); ctx.ellipse(x, y + 10, 7, 3, 0, 0, Math.PI * 2); ctx.fill();
+    // 1. 影子
+    ctx.fillStyle = "rgba(0,0,0,0.2)"; ctx.fillRect(x - 7, y + 8, 14, 4);
 
-    // 腿部慢速擺動
-    ctx.fillStyle = "#2c3e50";
-    const legOffset = (Math.floor(a.stepFrame / 6) % 2 === 0) ? 1.5 : -1.5;
-    ctx.fillRect(x - 4, y + 4, 3, 6 + legOffset); ctx.fillRect(x + 1, y + 4, 3, 6 - legOffset);
+    // 2. 雙腳 (麥塊方塊腿 + 走路動畫)
+    ctx.fillStyle = a.pants;
+    const legOffset = (Math.floor(a.stepFrame / 4) % 2 === 0) ? 2 : -2;
+    ctx.fillRect(x - 5, y + 1, 4, 7 + legOffset);
+    ctx.fillRect(x + 1, y + 1, 4, 7 - legOffset);
 
-    // 外套/身體
-    ctx.fillStyle = a.coatColor; ctx.fillRect(x - 5, y - 6, 10, 11);
-    // 臉/膚色
-    ctx.fillStyle = "#ffcc99"; ctx.fillRect(x - 4, y - 13, 8, 7);
-    // 喜馬拉雅氈帽
-    ctx.fillStyle = "#8e44ad"; ctx.fillRect(x - 5, y - 17, 10, 4); ctx.fillRect(x - 3, y - 19, 6, 2);
-    // 眼睛
-    ctx.fillStyle = "#000"; ctx.fillRect(x - 2, y - 10, 2, 2); ctx.fillRect(x + 1, y - 10, 2, 2);
+    // 3. 軀幹 (麥塊方塊衣服)
+    ctx.fillStyle = a.shirt;
+    ctx.fillRect(x - 6, y - 10, 12, 11);
+
+    // 4. 頭部 (立體方塊頭)
+    ctx.fillStyle = a.skin;
+    ctx.fillRect(x - 6, y - 21, 12, 11);
+
+    // 5. 眼睛 (麥塊經典雙畫素眼睛)
+    ctx.fillStyle = "#ffffff"; ctx.fillRect(x - 4, y - 17, 3, 3); ctx.fillRect(x + 1, y - 17, 3, 3);
+    ctx.fillStyle = "#2c3e50"; ctx.fillRect(x - 3, y - 16, 2, 2); ctx.fillRect(x + 2, y - 16, 2, 2);
+
+    // 6. 多樣化髮型與帽子
+    if (a.hair.hatColor) {
+        ctx.fillStyle = a.hair.hatColor;
+        ctx.fillRect(x - 7, y - 24, 14, 4); // 帽子邊緣
+        ctx.fillRect(x - 5, y - 27, 10, 3);
+    } else {
+        ctx.fillStyle = a.hair.color;
+        ctx.fillRect(x - 6, y - 23, 12, 3); // 頭頂頭髮
+        ctx.fillRect(x - 7, y - 21, 2, 5);  // 兩側鬢角
+        ctx.fillRect(x + 5, y - 21, 2, 5);
+    }
+
+    // 7. 浮動對話對話泡泡 (Thought Bubbles - 仿 Generative Agents)
+    if (isSelected || a.id % 7 === 0) {
+        ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
+        ctx.fillRect(x - 18, y - 42, 36, 14);
+        ctx.strokeStyle = "#34495e"; ctx.lineWidth = 1;
+        ctx.strokeRect(x - 18, y - 42, 36, 14);
+
+        ctx.fillStyle = "#2c3e50"; ctx.font = "bold 9px monospace";
+        ctx.fillText(`${a.initials}:💬`, x - 14, y - 31);
+    }
 }
 
-// 繪製右側的人際關係視覺化連線圖 (Social Canvas Graph)
+// 繪製右側人際關係圖
 function drawRelationGraph(agent) {
     graphCtx.clearRect(0, 0, graphCanvas.width, graphCanvas.height);
     if (!agent) return;
 
     const centerX = graphCanvas.width / 2;
     const centerY = graphCanvas.height / 2;
-    const radius = 95;
+    const radius = 100;
 
-    // 1. 繪製連線與周圍親友節點
-    const totalRel = agent.relations.length;
     agent.relations.forEach((rel, index) => {
-        const angle = (index / totalRel) * Math.PI * 2;
+        const angle = (index / agent.relations.length) * Math.PI * 2;
         const targetX = centerX + Math.cos(angle) * radius;
         const targetY = centerY + Math.sin(angle) * radius;
-
         const targetAgent = agents.find(a => a.id === rel.targetId);
-        const targetName = targetAgent ? targetAgent.name : "居民";
 
-        // 畫連線
-        graphCtx.strokeStyle = "#3498db";
-        graphCtx.lineWidth = 2;
-        graphCtx.beginPath();
-        graphCtx.moveTo(centerX, centerY);
-        graphCtx.lineTo(targetX, targetY);
-        graphCtx.stroke();
+        // 連線
+        graphCtx.strokeStyle = "#3498db"; graphCtx.lineWidth = 2;
+        graphCtx.beginPath(); graphCtx.moveTo(centerX, centerY); graphCtx.lineTo(targetX, targetY); graphCtx.stroke();
 
-        // 畫關聯標籤 (親戚/朋友)
-        graphCtx.fillStyle = "#e74c3c";
-        graphCtx.font = "10px sans-serif";
+        // 關聯文字
+        graphCtx.fillStyle = "#f39c12"; graphCtx.font = "10px sans-serif";
         graphCtx.fillText(rel.type, (centerX + targetX) / 2, (centerY + targetY) / 2);
 
-        // 畫親友圓形節點
-        graphCtx.beginPath();
-        graphCtx.arc(targetX, targetY, 18, 0, Math.PI * 2);
-        graphCtx.fillStyle = targetAgent ? targetAgent.coatColor : "#95a5a6";
-        graphCtx.fill();
-        graphCtx.strokeStyle = "#ffffff";
-        graphCtx.lineWidth = 1.5;
-        graphCtx.stroke();
+        // 周圍節點
+        graphCtx.beginPath(); graphCtx.arc(targetX, targetY, 16, 0, Math.PI * 2);
+        graphCtx.fillStyle = targetAgent ? targetAgent.shirt : "#7f8c8d"; graphCtx.fill();
+        graphCtx.strokeStyle = "#fff"; graphCtx.stroke();
 
-        // 標記親友姓名
-        graphCtx.fillStyle = "#ecf0f1";
-        graphCtx.font = "11px sans-serif";
-        graphCtx.textAlign = "center";
-        graphCtx.fillText(targetName, targetX, targetY + 30);
+        graphCtx.fillStyle = "#ecf0f1"; graphCtx.font = "11px sans-serif";
+        graphCtx.fillText(targetAgent ? targetAgent.name : "居民", targetX, targetY + 28);
     });
 
-    // 2. 繪製核心居民節點 (中心點)
-    graphCtx.beginPath();
-    graphCtx.arc(centerX, centerY, 24, 0, Math.PI * 2);
-    graphCtx.fillStyle = agent.coatColor;
-    graphCtx.fill();
-    graphCtx.strokeStyle = "#f1c40f";
-    graphCtx.lineWidth = 3;
-    graphCtx.stroke();
+    // 中心節點
+    graphCtx.beginPath(); graphCtx.arc(centerX, centerY, 22, 0, Math.PI * 2);
+    graphCtx.fillStyle = agent.shirt; graphCtx.fill();
+    graphCtx.strokeStyle = "#f1c40f"; graphCtx.lineWidth = 3; graphCtx.stroke();
 
-    graphCtx.fillStyle = "#ffffff";
-    graphCtx.font = "bold 12px sans-serif";
-    graphCtx.textAlign = "center";
+    graphCtx.fillStyle = "#fff"; graphCtx.font = "bold 11px sans-serif";
     graphCtx.fillText(agent.name, centerX, centerY + 4);
 }
 
-// 更新 Persona 面板
 function updateSidebar(a) {
     sidebar.innerHTML = `
         <h2>👤 ${a.name}</h2>
         <p><b>年齡：</b>${a.age} 歲 | <b>職業：</b>${a.occupation}</p>
         <p><b>性格特質：</b><br>${a.traits.map(t => `<span class="tag">${t}</span>`).join('')}</p>
         <div class="status-box">
-            <p><b>📍 當前座標：</b><span class="coordinate">X:${a.x.toFixed(1)} Y:${a.y.toFixed(1)}</span></p>
-            <p><b>🧠 最新記憶：</b>${a.memory}</p>
+            <p><b>💬 即時思考/對話：</b><br>「${a.thought}」</p>
+            <p><b>📍 座標：</b><span class="coordinate">X:${a.x.toFixed(1)} Y:${a.y.toFixed(1)}</span></p>
         </div>
     `;
     drawRelationGraph(a);
@@ -245,50 +286,36 @@ function updateSidebar(a) {
 
 function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    drawPixelScene();
+    drawRPGScene();
 
-    // 更新與繪製 100 位 Agent (慢速移動)
+    // 更新並繪製 100 位麥塊角色
     agents.forEach(a => {
-        a.x += a.vx;
-        a.y += a.vy;
-        a.stepFrame++;
+        a.x += a.vx; a.y += a.vy; a.stepFrame++;
 
-        // 邊界撞牆緩慢反彈
         if (a.x < 20 || a.x > canvas.width - 20) a.vx *= -1;
-        if (a.y < 75 || a.y > canvas.height - 25) a.vy *= -1;
+        if (a.y < 30 || a.y > canvas.height - 30) a.vy *= -1;
 
-        // 偶爾隨機轉向
-        if (Math.random() < 0.005) {
-            a.vx = (Math.random() - 0.5) * 0.45;
-            a.vy = (Math.random() - 0.5) * 0.45;
-        }
-
-        drawPixelAgent(a);
+        drawMinecraftAgent(a);
     });
 
     if (selectedAgent) updateSidebar(selectedAgent);
 }
 
-// 啟動主繪圖迴圈
 setInterval(draw, 33);
 
-// 點擊選擇角色事件
 canvas.addEventListener('click', event => {
     const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-    const mx = (event.clientX - rect.left) * scaleX;
-    const my = (event.clientY - rect.top) * scaleY;
+    const mx = (event.clientX - rect.left) * (canvas.width / rect.width);
+    const my = (event.clientY - rect.top) * (canvas.height / rect.height);
 
     selectedAgent = agents
         .map(a => ({ agent: a, distance: Math.hypot(a.x - mx, a.y - my) }))
-        .filter(item => item.distance <= 18)
+        .filter(item => item.distance <= 20)
         .sort((a, b) => a.distance - b.distance)[0]?.agent || selectedAgent;
 
     if (selectedAgent) updateSidebar(selectedAgent);
 });
 
-// 初始化預設角色
 updateSidebar(selectedAgent);
 </script>
 </body>
